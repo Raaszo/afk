@@ -1,0 +1,67 @@
+setDefaultTab("EHP")
+
+UI.Label("Healing spells")
+if type(storage.healingx1) ~= "table" then
+  storage.healingx1 = {on=false, title="HP%", text="exura", min=1, max=99}
+end
+
+if type(storage.healingx2) ~= "table" then
+  storage.healingx2 = {on=false, title="HP%", text="exura gran", min=1, max=99}
+end
+
+if type(storage.healingx3) ~= "table" then
+  storage.healingx3 = {on=false, title="HP%", text="exura vita", min=1, max=99}
+end
+
+-- create 3 healing widgets
+for _, healingInfo in ipairs({storage.healingx1, storage.healingx2, storage.healingx3}) do
+  local healingmacro = macro(1, function()
+    local hp = player:getHealthPercent()
+    if healingInfo.max >= hp and hp >= healingInfo.min then
+      if TargetBot then 
+        say(healingInfo.text) -- sync spell with targetbot if available
+      else
+        say(healingInfo.text)
+      end
+    end
+  end)
+  healingmacro.setOn(healingInfo.on)
+
+  UI.DualScrollPanel(healingInfo, function(widget, newParams) 
+    healingInfo = newParams
+    healingmacro.setOn(healingInfo.on)
+  end)
+end
+
+UI.Separator()
+
+UI.Label("Mana & health potions/runes")
+
+if type(storage.hpitemx1) ~= "table" then
+  storage.hpitemx1 = {on=false, title="HP%", item=266, min=51, max=90}
+end
+if type(storage.manaitemx1) ~= "table" then
+  storage.manaitemx1 = {on=false, title="MP%", item=268, min=51, max=90}
+end
+
+for i, healingInfo in ipairs({storage.hpitemx1, storage.manaitemx1}) do
+  local healingmacro = macro(1, function()
+    local hp = i <= 2 and player:getHealthPercent() or math.min(100, math.floor(100 * (player:getMana() / player:getMaxMana())))
+    if healingInfo.max >= hp and hp >= healingInfo.min then
+        local thing = g_things.getThingType(healingInfo.item)
+        local subType = g_game.getClientVersion() >= 860 and 0 or 1
+        g_game.useInventoryItemWith(healingInfo.item, player, subType)
+        TargetBot.useItem(healingInfo.item, healingInfo.subType, player)
+    end
+  end)
+  healingmacro.setOn(healingInfo.on)
+
+  UI.DualScrollItemPanel(healingInfo, function(widget, newParams) 
+    healingInfo = newParams
+    healingmacro.setOn(healingInfo.on and healingInfo.item > 100)
+  end)
+end
+
+if g_game.getClientVersion() < 780 then
+  UI.Label("In old tibia potions & runes work only when you have backpack with them opened")
+end
